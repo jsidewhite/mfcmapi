@@ -46,6 +46,7 @@
     <ProjectGuid>{466117D5-278C-46E6-BC2E-4FA7B25C0B3F}</ProjectGuid>
     <RootNamespace>MFCMapi</RootNamespace>
     <Keyword>MFCProj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Unicode|Win32'" Label="Configuration">
