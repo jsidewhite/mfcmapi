@@ -53,6 +53,37 @@ STDMETHODIMP_(ULONG) CMapiObjects::Release()
 	return lCount;
 }
 
+template <typename Condition>
+HRESULT RunAndLog(HRESULT hRes, LPTSTR functionText, Condition&& condition, LPTSTR filename, int lineNumber)
+{
+	if (SUCCEEDED(hRes) || condition(hRes))
+		LogFunctionCall(hRes, NULL, false, true, false, IDS_USERCANCELLED, functionText, filename, lineNumber);
+	else
+		LogFunctionCall(hRes, NULL, true, true, false, NULL, functionText, filename, lineNumber);
+	return hRes;
+}
+
+#define CHECK_AND_LOG(func, cond) RunAndLog((func), #func, cond, __FILE__, __LINE__)
+#define RunAndLogMfunc) RunAndLog((func), #func, [](){return false;}, __FILE__, __LINE__)
+
+void CMapiObjects::MAPILogonEx(_In_ HWND hwnd, _In_opt_z_ LPTSTR szProfileName, ULONG ulFlags)
+{
+	DebugPrint(DBGGeneric, L"Logging on with MAPILogonEx, ulFlags = 0x%X\n", ulFlags);
+
+	CGlobalCache::getInstance().MAPIInitialize(NULL);
+	if (!CGlobalCache::getInstance().bMAPIInitialized())
+		return;
+
+	RunAndLogM(::MAPILogonEx(reinterpret_cast<ULONG_PTR>(hwnd), szProfileName, nullptr, ulFlags, m_lpMAPISession.ReleaseAndGetAddressOf()), [](auto hRes){
+		return MAPI_E_USER_CANCEL == hRes || MAPI_E_CANCEL == hRes;
+	});
+
+	RunAndLogM(::MAPILogonEx(reinterpret_cast<ULONG_PTR>(hwnd), szProfileName, nullptr, ulFlags, m_lpMAPISession.ReleaseAndGetAddressOf()));
+
+	DebugPrint(DBGGeneric, L"\tm_lpMAPISession set to %p\n", m_lpMAPISession.Get());
+}
+
+/*
 void CMapiObjects::MAPILogonEx(_In_ HWND hwnd, _In_opt_z_ LPTSTR szProfileName, ULONG ulFlags)
 {
 	auto hRes = S_OK;
@@ -73,11 +104,13 @@ void CMapiObjects::MAPILogonEx(_In_ HWND hwnd, _In_opt_z_ LPTSTR szProfileName, 
 
 	DebugPrint(DBGGeneric, L"\tm_lpMAPISession set to %p\n", m_lpMAPISession);
 }
+*/
+
 
 void CMapiObjects::Logoff(_In_ HWND hwnd, ULONG ulFlags)
 {
 	auto hRes = S_OK;
-	DebugPrint(DBGGeneric, L"Logging off of %p, ulFlags = 0x%08X\n", m_lpMAPISession, ulFlags);
+	DebugPrint(DBGGeneric, L"Logging off of %p, ulFlags = 0x%08X\n", m_lpMAPISession.Get(), ulFlags);
 
 	if (m_lpMAPISession)
 	{
@@ -89,16 +122,16 @@ void CMapiObjects::Logoff(_In_ HWND hwnd, ULONG ulFlags)
 
 _Check_return_ LPMAPISESSION CMapiObjects::GetSession() const
 {
-	return m_lpMAPISession;
+	return m_lpMAPISession.Get();
 }
 
 _Check_return_ LPMAPISESSION CMapiObjects::LogonGetSession(_In_ HWND hWnd)
 {
-	if (m_lpMAPISession) return m_lpMAPISession;
+	if (m_lpMAPISession) return m_lpMAPISession.Get();
 
 	MAPILogonEx(hWnd, nullptr, MAPI_EXTENDED | MAPI_LOGON_UI | MAPI_NEW_SESSION);
 
-	return m_lpMAPISession;
+	return m_lpMAPISession.Get();
 }
 
 void CMapiObjects::SetMDB(_In_opt_ LPMDB lpMDB)

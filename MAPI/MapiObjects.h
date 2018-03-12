@@ -1,5 +1,7 @@
 #pragma once
 // Interface for the CMapiObjects class.
+#include <memory>
+#include <wrl/client.h>
 
 class CMapiObjects
 {
@@ -24,6 +26,7 @@ public:
 private:
 	LONG m_cRef;
 	LPMDB m_lpMDB;
-	LPMAPISESSION m_lpMAPISession;
+	//LPMAPISESSION m_lpMAPISession;
+	Microsoft::WRL::ComPtr<IMAPISession> m_lpMAPISession;
 	LPADRBOOK m_lpAddrBook;
 };
